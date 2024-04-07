@@ -1,4 +1,4 @@
-﻿namespace SMTPServer.CLI;
+﻿namespace SMTPServer.Common.Models;
 
 public class AttachmentModel
 {

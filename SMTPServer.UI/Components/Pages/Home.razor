@@ -1,0 +1,56 @@
+﻿@page "/"
+
+<PageTitle>Gary</PageTitle>
+
+<h1>Emails</h1>
+
+<div class="row">
+    <div class="col-3 scrollable-list d-flex flex-column pointer-event">
+        <div class="list-container">
+            @for (var i = 0; i < _Emails.Count; i++)
+            {
+                var email = _Emails[i];
+                <div class="card mb-2" role="button">
+                    <div class="card-header">
+                        <span class="fw-bold">@(string.IsNullOrWhiteSpace(email.Subject) ? "(no subject)" : email.Subject)</span>
+                    </div>
+                    <footer class="p-2 fst-italic text-secondary">@email.ReceivedDateTime.ToString()</footer>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-9">
+        <div class="border rounded p-2">
+            @{
+                var selectedEmail = _Emails[_SelectedIndex] ?? null;
+            }
+            <div class="headers">
+                <div>
+                    <span class="fw-bold">To: </span> @selectedEmail?.Recipient
+                </div>
+                <div>
+                    <span class="fw-bold">From: </span> @selectedEmail?.Sender
+                </div>
+                <div>
+                    <span class="fw-bold">Subject: </span> @selectedEmail?.Subject
+                </div>
+            </div>
+            <hr />
+            <div class="attachments">
+                <div>
+                    <span class="fw-bold">Attachments: </span> @(selectedEmail?.Attachments.Count ?? 0)
+                </div>
+                <div>
+                    @foreach (var attachment in selectedEmail.Attachments)
+                    {
+                        <a href="@("file:///" + attachment.Filepath)" target="_blank">@attachment.AttachmentFilename</a>
+                    }
+                </div>
+            </div>
+            <hr/>
+            @{
+                @(selectedEmail?.Content)
+            }
+        </div>
+    </div>
+</div>

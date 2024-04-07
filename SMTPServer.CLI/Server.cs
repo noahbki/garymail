@@ -1,17 +1,18 @@
 using System.Net;
-using System.Net.Mime;
 using System.Net.Sockets;
 using System.Text;
+using SMTPServer.Common;
+using SMTPServer.Common.Models;
 
 namespace SMTPServer.CLI;
 
 public class Server
 {
-    private string _IPAddress = "127.0.0.1";
-    private int _Port  = 8080;
+    private readonly string _IP_ADDRESS = "127.0.0.1";
+    private readonly int _PORT  = 8080;
 
     private Dictionary<TcpClient, bool> _ClientState = new();
-    private EmailStore _EmailStore = new();
+    private readonly EmailStore _EmailStore = new();
 
     public void Start()
     {
@@ -19,10 +20,10 @@ public class Server
         _EmailStore.Init();
         try
         {
-            server = new TcpListener(IPAddress.Parse(_IPAddress), _Port);
+            server = new TcpListener(IPAddress.Parse(_IP_ADDRESS), _PORT);
             server.Start();
             
-            Console.WriteLine($"Listening on {_IPAddress}:{_Port}");
+            Console.WriteLine($"Listening on {_IP_ADDRESS}:{_PORT}");
 
             while (true)
             {
@@ -170,7 +171,7 @@ public class Server
                     var attachmentGuid = _EmailStore.SaveAttachment(bytes);
                     emailModel.Attachments.Add(new AttachmentModel()
                     {
-                        Filepath = EmailStore.ATTACHMENTS_DIR + attachmentGuid,
+                        Filepath = Constants.ATTACHMENTS_DIR + attachmentGuid,
                         AttachmentFilename = "attachment-" + attachmentGuid
                     });
                 }
