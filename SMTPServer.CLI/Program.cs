@@ -16,8 +16,8 @@ class Program
                 foreach (var email in emailStore.Emails)
                 {
                     Console.WriteLine("-----------------------------START-----------------------------");
-                    Console.WriteLine($"To: {email.Recipient}");
-                    Console.WriteLine($"From: {email.Sender}");
+                    Console.WriteLine($"To: {email.To}");
+                    Console.WriteLine($"From: {email.From}");
                     Console.WriteLine($"Subject: {email.Subject}");
                     Console.WriteLine($"Received: {email.ReceivedDateTime}");
                     Console.WriteLine($"Attachment Count: {email.Attachments.Count}");

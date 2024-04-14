@@ -3,6 +3,8 @@ using System.Net.Sockets;
 using System.Text;
 using SMTPServer.Common;
 using SMTPServer.Common.Models;
+using System.Text.RegularExpressions;
+using MimeTypes;
 
 namespace SMTPServer.CLI;
 
@@ -65,22 +67,24 @@ public class Server
         while ((i = stream.Read(bytes, 0, bytes.Length)) > 0)
         {
             data = Encoding.ASCII.GetString(bytes, 0, i);
-            // Console.WriteLine("Received: " + data);
 
             string? response = null;
             try
             {
                 if (_ClientState[client])
                 {
-                    response = ProcessData(data, stream);
-                    _ClientState[client] = false;
+                    if (ProcessData(data, stream, out var x))
+                    {
+                        _ClientState[client] = false;
+                        response = x;
+                    }
                 }
                 else
                 {
                     response = ProcessCommand(data, client);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 response = Responses.ERROR;
             }
@@ -120,7 +124,7 @@ public class Server
         return "502 Command not implemented\r\n";
     }
 
-    private string ProcessData(string receivedData, NetworkStream stream)
+    private bool ProcessData(string receivedData, NetworkStream stream, out string response)
     {
         var remainingDataSB = new StringBuilder();
         var buffer = new byte[1024];
@@ -137,62 +141,126 @@ public class Server
 
         var emailModel = new EmailModel();
         
-        string bodyContent = string.Empty;
-        
         var emailData = receivedData + remainingDataSB;
         
-        var emailSections = emailData.Split("\r\n\r\n");
-
-        var headers = emailSections[0].Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        // TODO: Process headers.
-
+        var emailHeaders = emailData.Split("\r\n\r\n").FirstOrDefault();
+        var parsedEmailHeaders = ParseHeaders(emailHeaders!);
+        emailModel.From = parsedEmailHeaders.From;
+        emailModel.To = parsedEmailHeaders.To;
+        emailModel.Subject = parsedEmailHeaders.Subject;
+        emailModel.ReceivedDateTime = DateTime.Now;
         
-        var boundarySplitter = headers.FirstOrDefault(x => x.StartsWith("boundary=", StringComparison.OrdinalIgnoreCase))?["boundary=".Length..];
-        if (boundarySplitter is null)
-            emailModel.Content = emailSections[1];
-        else
+        var emailSections = ParseEmailContent(emailData);
+
+        var textSections = emailSections.Where(x
+            => x.ContentType?.StartsWith("multipart/alternative", StringComparison.OrdinalIgnoreCase) == true);
+
+        var attachments = emailSections.Where(x => x.IsAttachment);
+
+        emailModel.Content = textSections.FirstOrDefault()?.Content;
+        foreach (var attachment in attachments)
         {
-            var sections = emailData.Split("--" + boundarySplitter).Skip(1).ToList();
-            for (var i = 0; i < sections.Count - 1; i++)
+            var filename = _EmailStore.SaveAttachment(CleanAndConvertFromBase64(attachment.Content!));
+            emailModel.Attachments.Add(new AttachmentModel
             {
-                var section = sections[i];
-                var plainText = IsSectionContentTypeTextOrHTML(section);
-                
-                if (plainText)
-                    emailModel.Content = section.Split("\r\n\r\n").LastOrDefault()?.Trim(); 
-                
-                else if (IsSectionContentTypeOctet(section))
-                {
-                    var base64 = section.Split("\r\n\r\n").LastOrDefault()?.Trim();
-                    if (base64 is null)
-                        continue;
-                    
-                    var bytes = Convert.FromBase64String(base64);
-                    var attachmentGuid = _EmailStore.SaveAttachment(bytes);
-                    emailModel.Attachments.Add(new AttachmentModel()
-                    {
-                        Filepath = Constants.ATTACHMENTS_DIR + attachmentGuid,
-                        AttachmentFilename = "attachment-" + attachmentGuid
-                    });
-                }
-            }
+                Filepath = filename,
+                AttachmentFilename = $"attachment-{filename}{MimeTypeMap.GetExtension(attachment.ContentType)}"
+            });
         }
         
         _EmailStore.AddEmail(emailModel);
 
-        return Responses.OK;
+        response = Responses.OK;
+        return true;
     }
 
-    private bool IsSectionContentTypeTextOrHTML(string section)
+    private List<EmailSection> ParseEmailContent(string emailContent)
     {
-        return section.Split('\n')
-            .Any(line => line.StartsWith("Content-Type: text/plain", StringComparison.OrdinalIgnoreCase) 
-                         || line.StartsWith("Content-Type: text/html", StringComparison.OrdinalIgnoreCase));
+        var result = new List<EmailSection>();
+
+        var boundaryRegex = new Regex(@"boundary=(?<boundary>.+)");
+        Match boundaryMatch = boundaryRegex.Match(emailContent);
+        if (!boundaryMatch.Success)
+        {
+            return result;
+        }
+
+        var boundary = boundaryMatch.Groups["boundary"].Value;
+
+        var sections = emailContent.Split(new[] { "--" + boundary }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var section in sections)
+        {
+            var contentType = GetContentType(section);
+            var content = GetContent(section);
+            var isAttachment = IsAttachment(contentType, section);
+            
+            result.Add(new EmailSection
+            {
+                ContentType = contentType,
+                Content = content,
+                IsAttachment = isAttachment
+            });
+        }
+
+        return result;
     }
 
-    private bool IsSectionContentTypeOctet(string section)
+    private string? GetContentType(string section)
     {
-        return section.Split('\n')
-            .Any(line => line.StartsWith("Content-Type: application/octet-stream", StringComparison.OrdinalIgnoreCase));
+        var contentTypeRegex = new Regex(@"Content-Type:\s*([^\s;]+)");
+        Match match = contentTypeRegex.Match(section);
+        return match.Success ? match.Groups[1].Value.Trim() : null;
     }
+
+    private string? GetContent(string section)
+    {
+        var contentRegex = new Regex(@"\r?\n\r?\n(.*)", RegexOptions.Singleline);
+        Match match = contentRegex.Match(section);
+        return match.Success ? match.Groups[1].Value.Trim() : null;
+    }
+    
+    private bool IsAttachment(string? contentType, string section)
+    {
+        // Check content type for attachment indicators
+        if (contentType != null && contentType.StartsWith("application/octet-stream"))
+        {
+            return true;
+        }
+
+        // Check for Content-Disposition header indicating attachment
+        var contentDispositionRegex = new Regex(@"Content-Disposition:\s*attachment");
+        return contentDispositionRegex.IsMatch(section);
+    }
+
+    private byte[] CleanAndConvertFromBase64(string base64)
+    {
+        var trimmed = base64.Split("----boundary");
+        return Convert.FromBase64String(trimmed.FirstOrDefault()!);
+    }
+
+    private EmailHeaders ParseHeaders(string section)
+    {
+        var lines = section.Split("\r\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return new EmailHeaders
+        {
+            To = lines.FirstOrDefault(x => x.StartsWith("To: ", StringComparison.OrdinalIgnoreCase))?["To: ".Length..],
+            From = lines.FirstOrDefault(x => x.StartsWith("From: ", StringComparison.OrdinalIgnoreCase))?["From: ".Length..],
+            Subject = lines.FirstOrDefault(x => x.StartsWith("Subject: ", StringComparison.OrdinalIgnoreCase))?["Subject: ".Length..]
+        };
+    }
+}
+
+public class EmailSection
+{
+    public string? ContentType { get; set; }
+    public string? Content { get; set; }
+    public bool IsAttachment { get; set; }
+}
+
+public class EmailHeaders
+{
+    public string? To { get; set; }
+    public string? From { get; set; }
+    public string? Subject { get; set; }
 }
