@@ -25,4 +25,9 @@ public partial class Home : ComponentBase
         _Emails = new(_EmailStore.Emails.OrderByDescending(x => x.ReceivedDateTime));
         StateHasChanged();
     }
+
+    private void SelectEmail(int index)
+    {
+        _SelectedIndex = index;
+    }
 }

@@ -10,7 +10,10 @@
             @for (var i = 0; i < _Emails.Count; i++)
             {
                 var email = _Emails[i];
-                <div class="card mb-2" role="button">
+                
+                var index = i;
+                var activeClass = index == _SelectedIndex ? "border border-primary" : default;
+                <div class="card mb-2 @activeClass" role="button" @onclick="(e) => SelectEmail(index)">
                     <div class="card-header">
                         <span class="fw-bold">@(string.IsNullOrWhiteSpace(email.Subject) ? "(no subject)" : email.Subject)</span>
                     </div>
@@ -26,10 +29,10 @@
             }
             <div class="headers">
                 <div>
-                    <span class="fw-bold">To: </span> @selectedEmail?.Recipient
+                    <span class="fw-bold">To: </span> @selectedEmail?.To
                 </div>
                 <div>
-                    <span class="fw-bold">From: </span> @selectedEmail?.Sender
+                    <span class="fw-bold">From: </span> @selectedEmail?.From
                 </div>
                 <div>
                     <span class="fw-bold">Subject: </span> @selectedEmail?.Subject
