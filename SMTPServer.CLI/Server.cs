@@ -154,7 +154,7 @@ public class Server
         emailModel.Cc = mimeMessage.Cc.Mailboxes.ToList().ConvertAll(x => x.Address);
         emailModel.From = mimeMessage.From.Mailboxes.FirstOrDefault()?.Address;
         emailModel.Subject = mimeMessage.Subject;
-        emailModel.ReceivedDateTime = mimeMessage.Date.Date;
+        emailModel.ReceivedDateTime = mimeMessage.Date.DateTime;
         emailModel.Content = mimeMessage.TextBody;
         emailModel.Attachments = [];
         foreach (var attachment in mimeMessage.Attachments)
