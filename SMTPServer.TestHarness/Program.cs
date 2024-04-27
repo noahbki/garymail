@@ -19,7 +19,7 @@ class Program
         memoryStream.Write("anything you like"u8);
         memoryStream.Seek(0, SeekOrigin.Begin);
         
-        message.Attachments.Add(new Attachment(memoryStream, "text/plain"));
+        message.Attachments.Add(new Attachment(memoryStream, "test.txt", "text/plain"));
         
         smtpClient.Send(message);
         
