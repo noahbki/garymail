@@ -1,4 +1,3 @@
-using SMTPServer.UI;
 using SMTPServer.UI.Components;
 
 var builder = WebApplication.CreateBuilder(args);

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+
 using SMTPServer.Common;
 using SMTPServer.Common.Models;
 
@@ -25,14 +26,33 @@ public class EmailStore
 
         Directory.CreateDirectory(Constants.ATTACHMENTS_DIR);
     }
-
+    
     public void AddEmail(EmailModel email)
     {
+        Init();
         Emails.Add(email);
         var fileContents = JsonSerializer.Serialize(Emails);
         using var file = File.Open(Constants.PATH, FileMode.Create, FileAccess.Write);
         using var streamWriter = new StreamWriter(file);
         streamWriter.Write(fileContents);
+    }
+
+    public void DeleteEmail(string uid)
+    {
+        Init();
+        var index = Emails.FindIndex(x => x.UID == uid);
+        Emails.RemoveAt(index);
+        using var file = File.Open(Constants.PATH, FileMode.Create, FileAccess.Write);
+        using var streamWriter = new StreamWriter(file);
+        streamWriter.Write(JsonSerializer.Serialize(Emails));
+    }
+
+    public void DeleteAll()
+    {
+        Emails = [];
+        using var file = File.Open(Constants.PATH, FileMode.Create, FileAccess.Write);
+        using var streamWriter = new StreamWriter(file);
+        streamWriter.Write(JsonSerializer.Serialize(Emails));
     }
 
     public string SaveAttachment(byte[] bytes)

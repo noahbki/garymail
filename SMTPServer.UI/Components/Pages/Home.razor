@@ -4,6 +4,17 @@
 
 <h1>Emails</h1>
 
+<div class="row mb-2">
+    <div class="col-12">
+        <div class="toolbar border rounded p-2">
+            <button type="button" class="btn btn-light" @onclick="RefreshClicked"><span class="fa-solid fa-arrow-rotate-right" />&nbsp;Refresh</button>
+            <div class="vr" />
+            <button type="button" class="btn btn-light" @onclick="DeleteEmailClicked">&nbsp;Delete</button>
+            <button type="button" class="btn btn-light" @onclick="DeleteAllClicked"><span class="fa-regular fa-trash" />&nbsp;Delete All</button>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-3 scrollable-list d-flex flex-column pointer-event">
         <div class="list-container">
@@ -25,35 +36,64 @@
     <div class="col-9">
         <div class="border rounded p-2">
             @{
-                var selectedEmail = _Emails[_SelectedIndex] ?? null;
-            }
-            <div class="headers">
-                <div>
-                    <span class="fw-bold">To: </span> @selectedEmail?.To
-                </div>
-                <div>
-                    <span class="fw-bold">From: </span> @selectedEmail?.From
-                </div>
-                <div>
-                    <span class="fw-bold">Subject: </span> @selectedEmail?.Subject
-                </div>
-            </div>
-            <hr />
-            <div class="attachments">
-                <div>
-                    <span class="fw-bold">Attachments: </span> @(selectedEmail?.Attachments.Count ?? 0)
-                </div>
-                <div>
-                    @foreach (var attachment in selectedEmail.Attachments)
-                    {
-                        <a href="@("file:///" + attachment.Filepath)" target="_blank">@attachment.AttachmentFilename</a>
-                    }
-                </div>
-            </div>
-            <hr/>
-            @{
-                @(selectedEmail?.Content)
+                var selectedEmail = _Emails.ElementAtOrDefault(_SelectedIndex) ?? null;
+                if (selectedEmail is not null)
+                {
+                    <div class="headers">
+                        <div>
+                            <span class="fw-bold">To: </span> @string.Join(", ", selectedEmail.To ?? [])
+                        </div>
+                        <div>
+                            <span class="fw-bold">Cc: </span> @string.Join(", ", selectedEmail.Cc ?? [])
+                        </div>
+                        <div>
+                            <span class="fw-bold">From: </span> @selectedEmail.From
+                        </div>
+                        <div>
+                            <span class="fw-bold">Subject: </span> @selectedEmail.Subject
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="attachments">
+                        <div>
+                            <span class="fw-bold">Attachments: </span> @(selectedEmail?.Attachments.Count ?? 0)
+                        </div>
+                        <div>
+                            @if (selectedEmail?.Attachments != null)
+                            {
+                                foreach (var attachment in selectedEmail.Attachments)
+                                {
+                                    <a @onclick="() => DownloadAttachment(attachment.Filepath)">@attachment.AttachmentFilename</a>
+                                }
+                            }
+                        </div>
+                    </div>
+                    <hr/>
+                    @(selectedEmail?.Content)
+                }
             }
         </div>
     </div>
 </div>
+
+<script type="text/javascript">
+    window.downloadFileFromStream = async (emailUID, attachmentIndex) => {
+        var xhr = new XMLHttpRequest();
+
+        xhr.open("GET", `/download?emailUID=${emailUID}&index=${attachmentIndex}`, true);
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                console.log(xhr.status);
+                console.log(xhr);
+                console.log(xhr.responseText);
+            } else {
+                console.error("Request failed with status:", xhr.status);
+            }
+        };
+        xhr.onerror = function () {
+            console.error("Request failed");
+        };
+        
+        xhr.send();
+    }
+</script>

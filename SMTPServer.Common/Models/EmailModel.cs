@@ -2,7 +2,14 @@
 
 public class EmailModel
 {
-    public string? To { get; set; }
+    public EmailModel()
+    {
+        UID = Guid.NewGuid().ToString();
+    }
+    
+    public required string UID { get; set; }
+    public List<string>? To { get; set; }
+    public List<string>? Cc { get; set; }
     public string? From { get; set; }
     public string? Subject { get; set; }
     public string? Content { get; set; }
