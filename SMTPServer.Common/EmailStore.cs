@@ -63,4 +63,22 @@ public class EmailStore
 
         return filename;
     }
+
+    public void WatchForChanges(Action changedCallback)
+    {
+        var watcher = new FileSystemWatcher(Constants.DATA_DIRECTORY);
+        watcher.NotifyFilter = NotifyFilters.Attributes
+                               | NotifyFilters.CreationTime
+                               | NotifyFilters.DirectoryName
+                               | NotifyFilters.FileName
+                               | NotifyFilters.LastAccess
+                               | NotifyFilters.LastWrite
+                               | NotifyFilters.Security
+                               | NotifyFilters.Size;
+        watcher.Changed += (_, _) => changedCallback.Invoke();
+        watcher.Created += (_, _) => changedCallback.Invoke();
+        watcher.Filter = "*.json";
+        watcher.IncludeSubdirectories = false;
+        watcher.EnableRaisingEvents = true;
+    }
 }

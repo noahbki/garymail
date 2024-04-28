@@ -29,6 +29,12 @@ public partial class Home : ComponentBase
         _EmailStore.Init();
         LoadEmails();
         StateHasChanged();
+        
+        _EmailStore.WatchForChanges(() =>
+        {
+            LoadEmails();
+            InvokeAsync(StateHasChanged);
+        });
     }
 
     private void RefreshClicked()
