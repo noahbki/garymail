@@ -73,8 +73,6 @@ public partial class Home : ComponentBase
     private async void DownloadAttachment(string attachmentFilename)
     {
         var email = _Emails[_SelectedIndex];
-        using var fileStream = File.Open(Constants.ATTACHMENTS_DIR + attachmentFilename, FileMode.Open);
-        using var streamRef = new DotNetStreamReference(fileStream);
         await _JS.InvokeVoidAsync("downloadFileFromStream", email.UID, email.Attachments.FindIndex(x => x.Filepath == attachmentFilename));
     }
 }

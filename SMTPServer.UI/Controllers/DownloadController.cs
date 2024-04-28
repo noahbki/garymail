@@ -26,9 +26,11 @@ public class DownloadController : Controller
         int.TryParse(index, out var indexInt);
         var attachmentModel = emailModel.Attachments[indexInt];
     
-        using var filestream = new FileStream(Constants.ATTACHMENTS_DIR + attachmentModel.Filepath, 
+        var filestream = new FileStream(Constants.ATTACHMENTS_DIR + attachmentModel.Filepath, 
             FileMode.Open, FileAccess.Read);
 
-        return File(filestream, "application/octet-stream", attachmentModel.AttachmentFilename);
+        var result = File(filestream, "application/octet-stream", attachmentModel.AttachmentFilename);
+
+        return result;
     }
 }

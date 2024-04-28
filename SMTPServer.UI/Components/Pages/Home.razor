@@ -61,7 +61,7 @@
                             {
                                 foreach (var attachment in selectedEmail.Attachments)
                                 {
-                                    <a @onclick="() => DownloadAttachment(attachment.Filepath)">@attachment.AttachmentFilename</a>
+                                    <a class="link-primary" @onclick="() => DownloadAttachment(attachment.Filepath)">@attachment.AttachmentFilename</a>
                                 }
                             }
                         </div>
@@ -76,22 +76,12 @@
 
 <script type="text/javascript">
     window.downloadFileFromStream = async (emailUID, attachmentIndex) => {
-        var xhr = new XMLHttpRequest();
-
-        xhr.open("GET", `/download?emailUID=${emailUID}&index=${attachmentIndex}`, true);
-        xhr.onload = function () {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                console.log(xhr.status);
-                console.log(xhr);
-                console.log(xhr.responseText);
-            } else {
-                console.error("Request failed with status:", xhr.status);
-            }
-        };
-        xhr.onerror = function () {
-            console.error("Request failed");
-        };
-        
-        xhr.send();
+        const url = `/api/download/Get?emailUID=${emailUID}&index=${attachmentIndex}`;
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.target = "_blank";
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
     }
 </script>

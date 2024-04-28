@@ -166,7 +166,7 @@ public class Server
                 ((MessagePart) attachment).Message.WriteTo(attachmentStream);
 
             var filenameOnDisk = _EmailStore.SaveAttachment(attachmentStream.ToArray());
-            var filename = attachment.ContentDisposition.FileName;
+            var filename = attachment.ContentDisposition?.FileName ?? attachment.ContentType.Name;
             
             if (string.IsNullOrEmpty(filename))
             {
