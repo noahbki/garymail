@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 
 <head>
     <meta charset="utf-8"/>
@@ -19,5 +19,13 @@
 <Routes @rendermode="InteractiveServer"/>
 <script src="_framework/blazor.web.js"></script>
 </body>
-
+<script>
+    window.toggleDarkMode = function(useDarkMode) {
+        if (useDarkMode) {
+            document.documentElement.setAttribute("data-bs-theme", "dark");
+        } else {
+            document.documentElement.removeAttribute("data-bs-theme");
+        }
+    }
+</script>
 </html>
